@@ -2,6 +2,7 @@ import { LitElement, html } from 'lit-element';
 
 export class PokemonListDm extends LitElement {
   
+
   async fetchPokemon(limit = 100, offset = 0) {
     try {
       const response = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
@@ -19,9 +20,10 @@ export class PokemonListDm extends LitElement {
         })
       );
       this.loading = false;
+      return this.arrayPokemon; 
     } catch (error) {
-      console.error('Error al obtener los Pokémon:', error);
       this.loading = false; 
+      return []; 
     }
   }
 
