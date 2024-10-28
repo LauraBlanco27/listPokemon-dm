@@ -1,6 +1,6 @@
-import { LitElement } from 'lit-element';
+import { LitElement, html } from 'lit-element';
 
-export class ListPokemonDm extends LitElement {
+export class PokemonListDm extends LitElement {
   
   async fetchPokemon(limit = 100, offset = 0) {
     try {
@@ -25,5 +25,4 @@ export class ListPokemonDm extends LitElement {
     }
   }
 
-  
 }
