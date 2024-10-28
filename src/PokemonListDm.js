@@ -27,4 +27,56 @@ export class PokemonListDm extends LitElement {
     }
   }
 
+
+  async fetchPokemonDetails(pokemonId) {
+    try {
+      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}/`);
+      const data = await response.json();
+      const pokemonDetails = {
+        name: data.name,
+        image: data.sprites.front_default,
+        types: data.types.map(typeInfo => typeInfo.type.name).join(', '),
+      };
+
+      // Obtener la URL de la cadena evolutiva
+      const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonId}/`);
+      const speciesData = await speciesResponse.json();
+      const evolutionChainUrl = speciesData.evolution_chain.url;
+
+      // Obtener la cadena evolutiva y extraer las evoluciones con sus imágenes
+      const evolutionResponse = await fetch(evolutionChainUrl);
+      const evolutionData = await evolutionResponse.json();
+      const evolutions = await this.extractEvolutionsWithImages(evolutionData.chain);
+
+      return { pokemonDetails, evolutions };
+    } catch (error) {
+      console.error('Error al obtener detalles del Pokémon:', error);
+      return { pokemonDetails: {}, evolutions: [] };
+    }
+  }
+
+  async extractEvolutionsWithImages(chain) {
+    const evolutions = [];
+    let current = chain;
+
+    while (current) {
+      const evolutionName = current.species.name;
+      const evolutionImage = await this.fetchPokemonImage(evolutionName);
+      evolutions.push({ name: evolutionName, image: evolutionImage });
+      current = current.evolves_to[0];
+    }
+
+    return evolutions;
+  }
+
+  async fetchPokemonImage(evolutionName) {
+    try {
+      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${evolutionName}/`);
+      const data = await response.json();
+      return data.sprites.front_default;
+    } catch (error) {
+      console.error(`Error al obtener imagen de ${evolutionName}:`, error);
+      return '';
+    }
+  }
 }
