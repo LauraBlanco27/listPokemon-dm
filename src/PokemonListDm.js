@@ -30,7 +30,6 @@ export class PokemonListDm extends LitElement {
 
   async fetchPokemonDetails(pokemonName) {
     try {
-      // Cambia la URL para que use el nombre en lugar del ID
       const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}/`);
       const data = await response.json();
       const pokemonDetails = {
@@ -58,15 +57,18 @@ export class PokemonListDm extends LitElement {
 
   async extractEvolutionsWithImages(chain) {
     const evolutions = [];
-    let current = chain;
-
-    while (current) {
+    
+    const extractEvolution = async (current) => {
       const evolutionName = current.species.name;
       const evolutionImage = await this.fetchPokemonImage(evolutionName);
       evolutions.push({ name: evolutionName, image: evolutionImage });
-      current = current.evolves_to[0];
-    }
-
+  
+      for (const evolution of current.evolves_to) {
+        await extractEvolution(evolution);
+      }
+    };
+  
+    await extractEvolution(chain); 
     return evolutions;
   }
 
