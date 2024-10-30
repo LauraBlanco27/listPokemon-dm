@@ -1,14 +1,16 @@
-import { LitElement } from 'lit-element';
+import { LitElement, html } from 'lit-element';
 
 export class PokemonListDm extends LitElement {
+  
+
   async fetchPokemon(limit = 100, offset = 0) {
     try {
       const response = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
-      const data = await response.json();
-      const pokemonList = data.results;
-      return await Promise.all(
+      const data = await response.json(); 
+      const pokemonList = data.results; 
+      this.arrayPokemon = await Promise.all(
         pokemonList.map(async (pokemon) => {
-          const res = await fetch(pokemon.url);
+          const res = await fetch(pokemon.url); 
           const pokemonDetails = await res.json();
           return {
             name: pokemonDetails.name,
@@ -17,64 +19,68 @@ export class PokemonListDm extends LitElement {
           };
         })
       );
+      this.loading = false;
+      return this.arrayPokemon; 
     } catch (error) {
-      console.error('Error fetching Pokémon:', error);
-      return [];
+      this.loading = false; 
+      return []; 
     }
   }
 
-  async fetchPokemonDetails(pokemonName) {
+
+  async fetchPokemonDetails() {
     try {
-      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}/`);
+      // Obtener detalles del Pokémon (nombre, imagen, tipos)
+      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${this.pokemonId}/`);
       const data = await response.json();
-      const pokemonDetails = {
+      this.pokemonDetails = {
         name: data.name,
         image: data.sprites.front_default,
         types: data.types.map(typeInfo => typeInfo.type.name).join(', '),
       };
 
-      const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonName}/`);
+      // Obtener la URL de la cadena evolutiva
+      const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${this.pokemonId}/`);
       const speciesData = await speciesResponse.json();
       const evolutionChainUrl = speciesData.evolution_chain.url;
 
+      // Obtener la cadena evolutiva y extraer las evoluciones con sus imágenes
       const evolutionResponse = await fetch(evolutionChainUrl);
       const evolutionData = await evolutionResponse.json();
-      const evolutions = await this.extractEvolutionsWithImages(evolutionData.chain);
+      this.evolutions = await this.extractEvolutionsWithImages(evolutionData.chain);
 
-      return { pokemonDetails, evolutions };
+      this.noEvolutionsMessage = this.evolutions.length === 0
+        ? 'Este Pokémon no tiene evoluciones.'
+        : '';
     } catch (error) {
-      console.error('Error fetching Pokémon details:', error);
-      return { pokemonDetails: {}, evolutions: [] };
+      console.error('Error al obtener detalles del Pokémon:', error);
     }
   }
 
+  // Extraer evoluciones y obtener sus imágenes
   async extractEvolutionsWithImages(chain) {
     const evolutions = [];
+    let current = chain;
 
-    const extractEvolution = async (current) => {
+    while (current) {
       const evolutionName = current.species.name;
       const evolutionImage = await this.fetchPokemonImage(evolutionName);
       evolutions.push({ name: evolutionName, image: evolutionImage });
+      current = current.evolves_to[0];
+    }
 
-      for (const evolution of current.evolves_to) {
-        await extractEvolution(evolution);
-      }
-    };
-
-    await extractEvolution(chain);
     return evolutions;
   }
 
+  // Método para obtener la imagen del Pokémon por su nombre
   async fetchPokemonImage(evolutionName) {
     try {
       const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${evolutionName}/`);
       const data = await response.json();
       return data.sprites.front_default;
     } catch (error) {
-      console.error(`Error fetching image of ${evolutionName}:`, error);
+      console.error(`Error al obtener imagen de ${evolutionName}:`, error);
       return '';
     }
   }
 }
-
-window.customElements.define('pokemon-list-dm', PokemonListDm);
