@@ -28,36 +28,34 @@ export class PokemonListDm extends LitElement {
   }
 
 
-  async fetchPokemonDetails() {
+  async fetchPokemonDetails(pokemonName) {
     try {
-      // Obtener detalles del Pokémon (nombre, imagen, tipos)
-      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${this.pokemonId}/`);
+      // Cambia la URL para que use el nombre en lugar del ID
+      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}/`);
       const data = await response.json();
-      this.pokemonDetails = {
+      const pokemonDetails = {
         name: data.name,
         image: data.sprites.front_default,
         types: data.types.map(typeInfo => typeInfo.type.name).join(', '),
       };
-
-      // Obtener la URL de la cadena evolutiva
-      const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${this.pokemonId}/`);
+  
+      // Obtener la URL de la cadena evolutiva usando la especie del Pokémon
+      const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${pokemonName}/`);
       const speciesData = await speciesResponse.json();
       const evolutionChainUrl = speciesData.evolution_chain.url;
-
+  
       // Obtener la cadena evolutiva y extraer las evoluciones con sus imágenes
       const evolutionResponse = await fetch(evolutionChainUrl);
       const evolutionData = await evolutionResponse.json();
-      this.evolutions = await this.extractEvolutionsWithImages(evolutionData.chain);
-
-      this.noEvolutionsMessage = this.evolutions.length === 0
-        ? 'Este Pokémon no tiene evoluciones.'
-        : '';
+      const evolutions = await this.extractEvolutionsWithImages(evolutionData.chain);
+  
+      return { pokemonDetails, evolutions };
     } catch (error) {
       console.error('Error al obtener detalles del Pokémon:', error);
+      return { pokemonDetails: {}, evolutions: [] };
     }
   }
 
-  // Extraer evoluciones y obtener sus imágenes
   async extractEvolutionsWithImages(chain) {
     const evolutions = [];
     let current = chain;
@@ -72,7 +70,6 @@ export class PokemonListDm extends LitElement {
     return evolutions;
   }
 
-  // Método para obtener la imagen del Pokémon por su nombre
   async fetchPokemonImage(evolutionName) {
     try {
       const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${evolutionName}/`);
